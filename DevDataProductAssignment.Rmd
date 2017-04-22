@@ -1,0 +1,53 @@
+---
+title: "Sales Performance by 22 April 2017"
+author: "HweeSee Teh"
+date: "April 22, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+library(leaflet)
+```  
+
+## Sales Performance by Sales Office  
+The color indicate the sales office that contribute the sales figure.  
+The radius of the circle reflect the amoutn of sales.  
+```{r leaftletmap, echo = FALSE}
+popupSalesOffice <- c("Sales Office 1", "Sales Office 2", "Sales Office 3", "Sales Office 4", "Sales Office 5",
+                          "Sales Office 6", "Sales Office 7", "Sales Office 8", "Sales Office 9", "Sales Office 10")
+colorSalesOffice <- c("blue", "red", "green", "yellow", "purple", 
+                          "navy", "pink", "brown", "orange", "black")
+
+noOfSample <- 150
+set.seed(20170422)
+latraw <- c(runif(noOfSample, min = 3.0000000, max = 3.2500000))
+longraw <- runif(noOfSample, min = 101.5500000, max = 101.7000000)
+salesraw <- c(runif(noOfSample, min = 5000, max = 50000))
+colraw <- sample(colorSalesOffice, noOfSample, replace = TRUE)
+
+dfSales <- data.frame(lat = latraw, 
+                      lng = longraw,
+                      sales = salesraw,
+                      col = colraw, stringsAsFactors = FALSE)
+
+sales_map <- 
+  dfSales %>%
+  leaflet() %>% 
+  addTiles() %>% #plot the map and mapping data
+  addCircleMarkers(color = dfSales$col, 
+                   labelOptions = labelOptions(noHide = TRUE, direction = 'right', textOnly = TRUE),
+                   radius = sqrt(dfSales$sales)/10,
+                   clusterOptions = markerClusterOptions()
+  ) %>%  #add marker on sales cluster
+  #addCircles(weight = 0.5, radius = sqrt(dfSales$sales)/100) %>% #add marker on sales figure
+  addLegend(labels = popupSalesOffice, colors = colorSalesOffice)
+
+#plot final map
+sales_map
+```  
+
+
