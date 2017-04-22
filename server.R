@@ -37,7 +37,7 @@ shinyServer(function(input, output) {
       addTiles() %>% #plot the map and mapping data
       addCircleMarkers(color = dfSales$col, 
                        labelOptions = labelOptions(noHide = TRUE, direction = 'right', textOnly = TRUE),
-                       radius = sqrt(dfSales$sales)/10,
+                       #radius = dfSales$sales/70,
                        clusterOptions = markerClusterOptions()
       ) %>%  #add marker on sales cluster
       #addCircles(weight = 0.5, radius = sqrt(dfSales$sales)/100) %>% #add marker on sales figure
@@ -56,7 +56,7 @@ shinyServer(function(input, output) {
       clearMarkerClusters() %>%
       clearMarkers() %>%
       addCircleMarkers(color = ~col, 
-                         radius = sqrt(dfSales[input$topSalesSlider,]$sales)/10,
+                         #radius = dfSales[input$topSalesSlider,]$sales/70,
                          clusterOptions = markerClusterOptions()
       ) #%>%
       #addLegend(labels = popupSalesOffice[1:input$salesofficecountSlider], colors = colorSalesOffice[1:input$salesofficecountSlider])

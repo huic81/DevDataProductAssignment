@@ -14,7 +14,7 @@ library(leaflet)
 shinyUI(fluidPage(
   
   # Application title
-  titlePanel("Sales Performance by 22 April 2017"),
+  titlePanel("Sales Territory by 22 April 2017"),
   
   # Sidebar with a slider input for number of bins 
   sidebarLayout(
