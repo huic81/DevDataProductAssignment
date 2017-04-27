@@ -50,4 +50,8 @@ sales_map <-
 sales_map
 ```  
 
+```{r}
+library(shiny)
+runUrl( "https://huic81.shinyapps.io/devdataproductassignment/")
+```
 
