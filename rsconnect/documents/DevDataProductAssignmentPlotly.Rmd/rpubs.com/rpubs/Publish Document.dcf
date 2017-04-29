@@ -1,0 +1,8 @@
+name: Publish Document
+title:
+account: rpubs
+server: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/271178/b241abc82bec4a4a9328088673052086
+bundleId: https://api.rpubs.com/api/v1/document/271178/b241abc82bec4a4a9328088673052086
+url: http://rpubs.com/huic81/271178
+when: 1493283583.6301

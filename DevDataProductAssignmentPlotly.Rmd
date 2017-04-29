@@ -30,7 +30,7 @@ str(stockdata)
 ```  
 
 ## The plot  
-The plot is creatred using plotly.  
+The plot is created using plotly.  
 ```{r stockplot}
 myplot <- plot_ly(stockdata) %>%
   add_trace(x = ~Date, y = ~Volume, type = 'bar', name = 'Volume', 
