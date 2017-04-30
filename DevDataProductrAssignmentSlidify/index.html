@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reproducible Pitch Presentation in Slidify</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Reproducible Pitch Presentation in Slidify">
+  <meta name="author" content="Hwee See, Teh">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Reproducible Pitch Presentation in Slidify</h1>
+    <h2>Developing Data Product Assignment</h2>
+    <p>Hwee See, Teh<br/>Self-Learner</p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Introduction</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>This app takes a user selected future date, and perform prediction on the settle price using regression model.  </p>
+
+<h3>Input of the App</h3>
+
+<p>User will supply a future date by select from the date picker on the Input Section.<br>
+The app will present the historical data used to predict the price, and overlay the graph with the calculated settle prediction on the selected date.  </p>
+
+<p>User can also check on/off on the &quot;Show Legend&quot; box to show/hide the legend shall they need wider view on the graph.  </p>
+
+<h3>How to Access</h3>
+
+<p>The app is avalilable at:
+<a href="https://huic81.shinyapps.io/DevDataProductAssignmentShiny/">Kuala Lumpur Composite Index (FKLI) Prediction</a></p>
+
+<p>Source code for ui.R and server.R files are available on the GitHub:
+<a href="https://github.com/huic81/DevDataProductAssignment/tree/master/DevDataProductAssignmentShiny">The GitHub Repository</a></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>About the Data</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol>
+<li>This app use live dataset that refreshed daily which consists of market history for Kuala Lumpur Composite Index Futures (FKLI) in year 2017.</li>
+<li>The data retrieval API was privided by Quandl API.</li>
+<li>The data is provided by an exchange holding company in Malaysia, BURSA Malaysia. The data can be validated against the historical data provided at: 
+<a href="http://www.bursamalaysia.com/market/derivatives/market-statistics/historical-data/"> Historical Data in BURSA Market Statistics</a></li>
+</ol>
+
+<pre><code>##          Date Previous Settle OpenInterest OpenInterestPrev SettlePredict
+## 59 2017-02-02        0 1659.0           10                0            NA
+## 58 2017-02-03     1659 1669.0           18               10            NA
+## 57 2017-02-06     1669 1678.5           15               18            NA
+##    OpenInterestPredict Volume
+## 59                  NA     10
+## 58                  NA     11
+## 57                  NA     23
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>The Prediction Model</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>The app fit a model to predict Settlement with correlation to the settle price of the previous records, Open Interest and the date.   </p>
+
+<pre><code class="r">formula(best_model)
+</code></pre>
+
+<pre><code>## Settle ~ Previous + OpenInterest + Date
+</code></pre>
+
+<pre><code class="r">summary(best_model)$coef
+</code></pre>
+
+<pre><code>##                   Estimate   Std. Error    t value     Pr(&gt;|t|)
+## (Intercept)  -1068.5777880 2.620279e+03 -0.4078106 6.849959e-01
+## Previous         0.0127049 6.635473e-03  1.9146948 6.073851e-02
+## OpenInterest     0.2430040 4.388700e-02  5.5370390 8.889480e-07
+## Date             0.1582845 1.523754e-01  1.0387800 3.034524e-01
+</code></pre>
+
+<p>About 84.8787652% of the variance of Settle Price can be explained by this model.  </p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>The Plot</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>The app will present the prediction result in a plot.  </p>
+
+<p>The Prediction of Kuala Lumpur Composite Index Futures (FKLI) Settle Price on 2017-04-30.  </p>
+
+<h2><img src="figure/thePlot-1.png" alt="plot of chunk thePlot"></h2>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Introduction'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='About the Data'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='The Prediction Model'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='The Plot'>
+         4
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>

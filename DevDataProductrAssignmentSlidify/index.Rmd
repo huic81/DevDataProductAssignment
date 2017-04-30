@@ -1,0 +1,186 @@
+---
+title       : Reproducible Pitch Presentation in Slidify
+subtitle    : Developing Data Product Assignment
+author      : Hwee See, Teh
+job         : Self-Learner
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+url:
+    assets: ../assets/img
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+---
+
+## Introduction
+
+This app takes a user selected future date, and perform prediction on the settle price using regression model.  
+
+### Input of the App
+User will supply a future date by select from the date picker on the Input Section.  
+The app will present the historical data used to predict the price, and overlay the graph with the calculated settle prediction on the selected date.  
+
+User can also check on/off on the "Show Legend" box to show/hide the legend shall they need wider view on the graph.  
+
+### How to Access
+The app is avalilable at:
+<a href="https://huic81.shinyapps.io/DevDataProductAssignmentShiny/">Kuala Lumpur Composite Index (FKLI) Prediction</a>
+
+Source code for ui.R and server.R files are available on the GitHub:
+<a href="https://github.com/huic81/DevDataProductAssignment/tree/master/DevDataProductAssignmentShiny">The GitHub Repository</a>
+
+---
+
+## About the Data
+
+1. This app use live dataset that refreshed daily which consists of market history for Kuala Lumpur Composite Index Futures (FKLI) in year 2017.
+2. The data retrieval API was privided by Quandl API.
+3. The data is provided by an exchange holding company in Malaysia, BURSA Malaysia. The data can be validated against the historical data provided at: 
+<a href="http://www.bursamalaysia.com/market/derivatives/market-statistics/historical-data/"> Historical Data in BURSA Market Statistics</a>
+
+```{r installprerequisite, echo=FALSE, include=FALSE}
+library(Quandl)
+library(dplyr)
+library(plotly)
+library(webshot)
+```  
+```{r gettingdata, echo=FALSE}
+stockdata <- Quandl("MYX/FKLIU2017", api_key="cwsM4nx544ZcQkhDngzn")
+newStockdata <- stockdata[order(as.Date(stockdata$Date, format="%Y-%m-%d")),]
+newStockdata["OpenInterestPrev"] <- lag(newStockdata$`Open Interest`)
+newStockdata["OpenInterest"] <- newStockdata$`Open Interest`
+newStockdata[1, "OpenInterestPrev"] <- 0
+newStockdata["SettlePredict"] <- NA
+newStockdata["OpenInterestPredict"] <- NA
+orderStockdata <- newStockdata[,c("Date","Previous","Settle","OpenInterest","OpenInterestPrev", "SettlePredict", "OpenInterestPredict", "Volume")]
+head(orderStockdata,3)
+
+lastrow <- nrow(orderStockdata)
+setPrev <- orderStockdata$Settle[lastrow]
+setOIPrev <- orderStockdata$OpenInterest[lastrow]
+
+predictData <- data.frame("Date" = as.Date(character()),
+                          "Previous" = numeric(),
+                          "Settle" = numeric(),
+                          "OpenInterest" = numeric(), 
+                          "OpenInterestPrev" = numeric(), 
+                          "SettlePredict" = numeric(),
+                          "OpenInterestPredict" = numeric(),
+                          "Volume" = numeric())
+```  
+
+---  
+
+## The Prediction Model  
+The app fit a model to predict Settlement with correlation to the settle price of the previous records, Open Interest and the date.   
+```{r predictSettleModel, echo=FALSE}
+initial_model <- lm(OpenInterest ~ Date + OpenInterestPrev, data = orderStockdata)
+best_model <- lm(Settle ~ Previous + OpenInterest + Date, data = orderStockdata)
+```  
+```{r predictSettleModelResult}
+formula(best_model)
+summary(best_model)$coef
+```  
+About `r summary(best_model)$adj.r.squared * 100`% of the variance of Settle Price can be explained by this model.  
+
+---
+
+## The Plot  
+The app will present the prediction result in a plot.  
+```{r thePlotFunction, echo=FALSE, include=FALSE}
+getPredictOI <- function(initialmodel, predictDate) {
+  predictData <- rbind(predictData, data.frame(Date = predictDate, 
+                                                          Previous = setPrev,
+                                                          Settle = 0,
+                                                          OpenInterest = 0,
+                                                          OpenInterestPrev = setOIPrev,
+                                                          SettlePredict = 0,
+                                                          OpenInterestPredict = 0,
+                                                          Volume = 0))
+  predictOI <- predict(initialmodel, newdata=predictData)
+  names(predictOI) <- NULL
+  predictOI
+  }
+
+# set settle predict data and predict settle
+getPredictSettle <- function(bestmodel, predictDate, openInterestPred) {
+  predictData <- rbind(predictData, data.frame(Date = predictDate,
+                                               Previous = setPrev,
+                                               Settle = 0,
+                                               OpenInterest = openInterestPred,
+                                               OpenInterestPrev = setOIPrev,
+                                               SettlePredict = 0,
+                                               OpenInterestPredict = openInterestPred,
+                                               Volume = 0))
+  predictSettle <- predict(bestmodel, newdata=predictData)
+  names(predictSettle) <- NULL
+  predictSettle
+}
+
+# Add the predicted line to the data frame
+addPredictedValue <- function(predictDate, openInterestPred, SettlePred) {
+  if (predictDate > orderStockdata$Date[nrow(orderStockdata)])
+  {  orderStockdata <- rbind(orderStockdata, data.frame(Date = predictDate,
+                                                  Previous = NA,#setPrev,
+                                                  Settle = NA,
+                                                  OpenInterest = NA,
+                                                  OpenInterestPrev = setOIPrev,
+                                                  SettlePredict = SettlePred,
+                                                  OpenInterestPredict = openInterestPred,
+                                                  Volume = NA))
+  }
+  orderStockdata
+}
+
+# Add the predicted value to the data frame
+addFittedValue <- function(predictDate, openInterestPred, SettlePred) {
+  if (predictDate >= orderStockdata$Date[nrow(orderStockdata)])
+  {  orderStockdata <- rbind(orderStockdata, data.frame(Date = predictDate,
+                                                     Previous = setPrev,
+                                                     Settle = SettlePred,
+                                                     OpenInterest = openInterestPred,
+                                                     OpenInterestPrev = setOIPrev,
+                                                     SettlePredict = SettlePred,
+                                                     OpenInterestPredict = openInterestPred,
+                                                     Volume = NA))
+  }
+  orderStockdata
+}
+
+tempDate <- Sys.Date()
+resultOI <- getPredictOI(initial_model, as.Date(tempDate, format = '%Y%m%d'))
+resultSettle <- getPredictSettle(best_model,as.Date(tempDate, format = '%Y%m%d'), resultOI)
+orderStockdata <- addPredictedValue(as.Date(tempDate, format = '%Y%m%d'), resultOI, resultSettle)
+fittedorderStockdata <- addFittedValue(as.Date(tempDate, format = '%Y%m%d'), resultOI, resultSettle)
+new_best_model <- lm(Settle ~ Previous + OpenInterest + Date, data = fittedorderStockdata)
+```  
+The Prediction of Kuala Lumpur Composite Index Futures (FKLI) Settle Price on `r tempDate`.  
+```{r thePlot, echo=FALSE, message=F, warning=F, fig.width=13, fig.height=5}
+myplot <- plot_ly(orderStockdata) %>%
+    add_trace(x = ~Date, y = ~OpenInterest, type = 'bar', name = 'Actual Open Interest', 
+              marker = list(color = '#C9EFF9'),
+              hoverinfo = "text",
+              text = ~OpenInterest) %>%
+    
+    add_trace(x = ~Date, y = ~OpenInterestPredict, name = 'Predicted Open Interest', type = 'bar', marker = list(color = '#154360'),
+              hoverinfo = "text", text = ~OpenInterestPredict, yaxis = 'y') %>%  
+    
+    add_trace(x = ~Date, y = ~Settle, name = 'Actual Settle', type = 'scatter', mode = 'lines+markers', yaxis = 'y2') %>%
+    add_trace(x = ~Date, y = ~SettlePredict, name = 'Predicted Settle', type = 'scatter', mode = 'markers', yaxis = 'y2') %>%
+    add_trace(x = ~Date, y = ~fitted(new_best_model), name = 'Settle Trend', mode = 'lines', yaxis = 'y2') %>%
+    
+    layout(title = 'Kuala Lumpur Composite Index Futures (FKLI)',
+           xaxis = list(title = "Date"),
+           yaxis = list(side = 'left', title = 'Open Interest', showgrid = FALSE, zeroline = FALSE),
+           yaxis2 = list(side = 'right', title = 'Market Price', overlaying = "y", 
+                         showgrid = FALSE, zeroline = FALSE)
+    )
+  
+myplot <- myplot  %>%
+    layout(legend = list(x = 1.1, y = 0.9)) %>%
+    layout(showlegend = TRUE)
+
+myplot
+```  
+---
