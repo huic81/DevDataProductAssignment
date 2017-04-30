@@ -9,14 +9,12 @@
 #install.packages("Quandl")
 #install.packages("caret")
 #install.packages("dplyr")
+#install.packages("nloptr", repos='http://cran.rstudio.com/')
+#library(nloptr)
 library(Quandl)
-library(caret) 
 library(dplyr)
 library(plotly)
-
 library(shiny)
-#library(leaflet)
-
 
 # Retrieve source data
 # Perform data exploratory & Cleaning
@@ -26,7 +24,8 @@ newStockdata["OpenInterestPrev"] <- lag(newStockdata$`Open Interest`)
 newStockdata["OpenInterest"] <- newStockdata$`Open Interest`
 newStockdata[1, "OpenInterestPrev"] <- 0
 newStockdata["SettlePredict"] <- NA
-orderStockdata <- newStockdata[,c("Date","Previous","Settle","OpenInterest","OpenInterestPrev", "SettlePredict", "Volume")]
+newStockdata["OpenInterestPredict"] <- NA
+orderStockdata <- newStockdata[,c("Date","Previous","Settle","OpenInterest","OpenInterestPrev", "SettlePredict", "OpenInterestPredict", "Volume")]
 
 # Set Model
 set.seed(12345) 
@@ -41,8 +40,8 @@ best_model <- lm(Settle ~ Previous + OpenInterest + Date, data = orderStockdata)
 #84.86%
 
 lastrow <- nrow(orderStockdata)
-setPrev <- orderStockdata$Settle[nrow(orderStockdata)]
-setOIPrev <- orderStockdata$OpenInterest[nrow(orderStockdata)]
+setPrev <- orderStockdata$Settle[lastrow]
+setOIPrev <- orderStockdata$OpenInterest[lastrow]
 
 predictData <- data.frame("Date" = as.Date(character()),
                           "Previous" = numeric(),
@@ -50,6 +49,7 @@ predictData <- data.frame("Date" = as.Date(character()),
                           "OpenInterest" = numeric(), 
                           "OpenInterestPrev" = numeric(), 
                           "SettlePredict" = numeric(),
+                          "OpenInterestPredict" = numeric(),
                           "Volume" = numeric())
 
 # Define server logic required to draw a histogram
@@ -65,7 +65,8 @@ getPredictOI <- function(initialmodel, predictDate) {
                                                           Settle = 0,
                                                           OpenInterest = 0,
                                                           OpenInterestPrev = setOIPrev,
-                                                          SettlePredict = NA,
+                                                          SettlePredict = 0,
+                                                          OpenInterestPredict = 0,
                                                           Volume = 0))
   predictOI <- predict(initialmodel, newdata=predictData)
   names(predictOI) <- NULL
@@ -79,7 +80,8 @@ getPredictSettle <- function(bestmodel, predictDate, openInterestPred) {
                                                Settle = 0,
                                                OpenInterest = openInterestPred,
                                                OpenInterestPrev = setOIPrev,
-                                               SettlePredict = NA,
+                                               SettlePredict = 0,
+                                               OpenInterestPredict = openInterestPred,
                                                Volume = 0))
   predictSettle <- predict(bestmodel, newdata=predictData)
   names(predictSettle) <- NULL
@@ -88,25 +90,31 @@ getPredictSettle <- function(bestmodel, predictDate, openInterestPred) {
 
 # Add the predicted line to the data frame
 addPredictedValue <- function(predictDate, openInterestPred, SettlePred) {
-  orderStockdata <- rbind(orderStockdata, data.frame(Date = predictDate,
-                                                  Previous = setPrev,
+  if (predictDate > orderStockdata$Date[nrow(orderStockdata)])
+  {  orderStockdata <- rbind(orderStockdata, data.frame(Date = predictDate,
+                                                  Previous = NA,#setPrev,
                                                   Settle = NA,
-                                                  OpenInterest = openInterestPred,
+                                                  OpenInterest = NA,
                                                   OpenInterestPrev = setOIPrev,
                                                   SettlePredict = SettlePred,
+                                                  OpenInterestPredict = openInterestPred,
                                                   Volume = NA))
+  }
   orderStockdata
 }
 
 # Add the predicted value to the data frame
 addFittedValue <- function(predictDate, openInterestPred, SettlePred) {
-  orderStockdata <- rbind(orderStockdata, data.frame(Date = predictDate,
+  if (predictDate > orderStockdata$Date[nrow(orderStockdata)])
+  {  orderStockdata <- rbind(orderStockdata, data.frame(Date = predictDate,
                                                      Previous = setPrev,
                                                      Settle = SettlePred,
                                                      OpenInterest = openInterestPred,
                                                      OpenInterestPrev = setOIPrev,
                                                      SettlePredict = SettlePred,
+                                                     OpenInterestPredict = openInterestPred,
                                                      Volume = NA))
+  }
   orderStockdata
 }
 
@@ -115,14 +123,18 @@ output$opredictOI <- renderPrint({
   #class(predictData)
   resultOI <- getPredictOI(initial_model, input$predictDate)
   predictData[1,"OpenInterest"] <- resultOI
-  resultOI
+  if (input$predictDate > orderStockdata$Date[nrow(orderStockdata)])
+  {  resultOI
+  } else {"Please select future Date! You can check historical price by mouse hover the graph!"}
 })
 
 # Print the predicted settle to screen
 output$opredictSettle <- renderPrint({
   resultOI <- getPredictOI(initial_model, input$predictDate)
   resultSettle <- getPredictSettle(best_model,input$predictDate, resultOI)
-  resultSettle
+  if (input$predictDate > orderStockdata$Date[nrow(orderStockdata)])
+  {  resultSettle
+  } else {"Please select future Date! You can check historical price by mouse hover the graph!"}
 })
 
 # print the plot
@@ -130,6 +142,7 @@ output$plotlyplot <- renderPlotly({
   
   resultOI <- getPredictOI(initial_model, input$predictDate)
   resultSettle <- getPredictSettle(best_model,input$predictDate, resultOI)
+  
   orderStockdata <- addPredictedValue(input$predictDate, resultOI, resultSettle)
   fittedorderStockdata <- addFittedValue(input$predictDate, resultOI, resultSettle)
   new_best_model <- lm(Settle ~ Previous + OpenInterest + Date, data = fittedorderStockdata)
@@ -137,25 +150,28 @@ output$plotlyplot <- renderPlotly({
   customMargin <- list(
     l = 80,
     r = 80,
-    b = 20,
-    t = 20,
+    b = 50,
+    t = 50,
     pad = 5
   )
   
   myplot <- plot_ly(orderStockdata) %>%
-    add_trace(x = ~Date, y = ~Volume, type = 'bar', name = 'Volume', 
+    add_trace(x = ~Date, y = ~OpenInterest, type = 'bar', name = 'Actual Open Interest', 
               marker = list(color = '#C9EFF9'),
               hoverinfo = "text",
-              text = ~Volume) %>%
-    add_trace(x = ~Date, y = ~Settle, name = 'Settle', type = 'scatter', mode = 'lines+markers', yaxis = 'y2') %>%
+              text = ~OpenInterest) %>%
     
+    add_trace(x = ~Date, y = ~OpenInterestPredict, name = 'Predicted Open Interest', type = 'bar', marker = list(color = '#154360'),
+              hoverinfo = "text", text = ~OpenInterestPredict, yaxis = 'y') %>%  
+    
+    add_trace(x = ~Date, y = ~Settle, name = 'Actual Settle', type = 'scatter', mode = 'lines+markers', yaxis = 'y2') %>%
     add_trace(x = ~Date, y = ~SettlePredict, name = 'Predicted Settle', type = 'scatter', mode = 'markers', yaxis = 'y2') %>%
     add_trace(x = ~Date, y = ~fitted(new_best_model), name = 'Settle Trend', mode = 'lines', yaxis = 'y2') %>%
     
-    layout(title = 'Kuala Lumpur Composite Index Futures (FKLI) 2017',
+    layout(title = 'Kuala Lumpur Composite Index Futures (FKLI)',
            xaxis = list(title = "Date"),
-           yaxis = list(side = 'left', title = 'Volume', showgrid = FALSE, zeroline = FALSE),
-           yaxis2 = list(side = 'right', title = 'Market Settle Price', overlaying = "y", 
+           yaxis = list(side = 'left', title = 'Open Interest', showgrid = FALSE, zeroline = FALSE),
+           yaxis2 = list(side = 'right', title = 'Market Price', overlaying = "y", 
                          showgrid = FALSE, zeroline = FALSE),
            margin = customMargin
     )

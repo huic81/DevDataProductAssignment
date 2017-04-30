@@ -3,8 +3,8 @@ title: DevDataProductAssignmentShiny
 account: huic81
 server: shinyapps.io
 appId: 176584
-bundleId: 809486
+bundleId: 809635
 url: https://huic81.shinyapps.io/DevDataProductAssignmentShiny/
-when: 1493536406.80768
+when: 1493552901.46551
 asMultiple: FALSE
 asStatic: FALSE
