@@ -1,0 +1,54 @@
+---
+title: "Kuala Lumpur Composite Index Futures (FKLI)"
+author: "HweeSee Teh"
+date: "April 27, 2017"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## The Source of the Data
+
+- The dataset used is a live data that refreshed daily which consists of market history for Kuala Lumpur Composite Index Futures (FKLI) in year 2017. - The data is provided by an exchange holding company in Malaysia, BURSA Malaysia. 
+- The data retrieval API was privided by Quandl API.  
+- The data can be validated against [Historical Data in BURSA Market Statistics](http://www.bursamalaysia.com/market/derivatives/market-statistics/historical-data/).  
+
+## The Dataset  
+```{r installprerequisite, echo=FALSE, include=FALSE}
+#install.packages("plotly")
+library(plotly)
+#install.packages("Quandl")
+library(Quandl)
+library(dplyr)
+```  
+  
+```{r gettingdate, echo=FALSE}
+stockdata <- Quandl("MYX/FKLIU2017", api_key="cwsM4nx544ZcQkhDngzn")
+str(stockdata)
+```  
+
+## The plot  
+The plot is created using plotly.  
+```{r stockplot}
+myplot <- plot_ly(stockdata) %>%
+  add_trace(x = ~Date, y = ~Volume, type = 'bar', name = 'Volume', 
+            marker = list(color = '#C9EFF9'),
+            hoverinfo = "text",
+            text = ~Volume) %>%
+  add_trace(x = ~Date, y = ~High, name = 'High', type = 'scatter', mode = 'lines+markers', yaxis = 'y2') %>%
+  add_trace(x = ~Date, y = ~Low, name = 'Low', type = 'scatter', mode = 'lines+markers', yaxis = 'y2') %>%
+  add_trace(x = ~Date, y = ~Settle, name = 'Settle', type = 'scatter', mode = 'lines+markers', yaxis = 'y2') %>%
+  layout(title = 'Kuala Lumpur Composite Index Futures (FKLI) 2017',
+         xaxis = list(title = "Date"),
+         yaxis = list(side = 'left', title = 'Volume', showgrid = FALSE, zeroline = FALSE),
+         yaxis2 = list(side = 'right', title = 'Market Price', overlaying = "y", 
+         showgrid = FALSE, zeroline = FALSE)
+         ) %>%
+  layout(legend = list(x = 1.1, y = 0.9))
+myplot
+```  
+
+## The End  
+Thanks you!
